@@ -62,7 +62,7 @@ class Current {
     final int? pressureMb;
     final double? pressureIn;
     final double? precipMm;
-    final int? precipIn;
+    final double? precipIn;
     final int? humidity;
     final int? cloud;
     final double? feelslikeC;
