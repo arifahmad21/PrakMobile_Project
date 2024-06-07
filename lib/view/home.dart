@@ -250,16 +250,26 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
   void initState() {
     super.initState();
     _initializeDateTime();
-    _startTimer();
   }
 
-   void _initializeDateTime() {
+  @override
+  void didUpdateWidget(covariant WeatherDisplay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentWeather.location?.localtime != widget.currentWeather.location?.localtime) {
+      _initializeDateTime();
+    }
+  }
+
+  void _initializeDateTime() {
     final localtime = widget.currentWeather.location?.localtime;
     if (localtime != null) {
       final formattedTime = _formatTimeString(localtime);
       final dateTime = DateTime.parse(formattedTime);
       _date = '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
       _time = '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}';
+
+      // Start the timer to update time every second
+      _startTimer(dateTime);
     } else {
       _date = 'Unknown date';
       _time = 'Unknown time';
@@ -267,28 +277,26 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
   }
 
   String _formatTimeString(String localtime) {
-    // Split the date and time parts
     final parts = localtime.split(' ');
     if (parts.length == 2) {
       final date = parts[0];
       final time = parts[1];
-
-      // Ensure the time part has two digits for the hour
       final timeParts = time.split(':');
       if (timeParts.length == 2) {
         final hour = timeParts[0].padLeft(2, '0');
         final minute = timeParts[1].padLeft(2, '0');
-        return '$date $hour:$minute:00'; // Assuming seconds as 00 if not provided
+        return '$date $hour:$minute:00';
       }
     }
-    return localtime; // Return original if format is unexpected
+    return localtime;
   }
 
-  void _startTimer() {
+  void _startTimer(DateTime initialDateTime) {
+    _timer?.cancel(); // Cancel any existing timer
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       setState(() {
-        final now = DateTime.now();
-        _time = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+        final updatedTime = initialDateTime.add(Duration(seconds: timer.tick));
+        _time = '${updatedTime.hour.toString().padLeft(2, '0')}:${updatedTime.minute.toString().padLeft(2, '0')}:${updatedTime.second.toString().padLeft(2, '0')}';
       });
     });
   }
@@ -340,6 +348,8 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
     );
   }
 }
+
+
 
 class RegisterPage extends StatelessWidget {
   @override
