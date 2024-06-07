@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:projek_akhir/model/current.dart';
 import 'package:projek_akhir/services/load_data2.dart';
-import 'package:projek_akhir/view/login.dart';
+import 'package:projek_akhir/view/forecast.dart';
 import 'package:projek_akhir/view/register.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -71,7 +71,13 @@ class _HomePageState extends State<HomePage> {
         zoomOut: _zoomOut,
         currentWeather: _currentWeather,
       ),
-      RegisterPage(),
+      if (_clickedLocation != null)
+        RegisterPage(
+          latitude: _clickedLocation!.latitude,
+          longitude: _clickedLocation!.longitude,
+        )
+      else
+        Center(child: Text('Click on the map to select a location')),
       LoginPage(),
     ];
 
@@ -127,23 +133,14 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: _clickedLocation != null
           ? FloatingActionButton(
               onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return AlertDialog(
-                      title: Text('Clicked Location'),
-                      content: Text(
-                          'Latitude: ${_clickedLocation!.latitude}, Longitude: ${_clickedLocation!.longitude}'),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context); // Close dialog
-                          },
-                          child: Text('OK'),
-                        ),
-                      ],
-                    );
-                  },
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => WeatherForecastScreen(
+                      latitude: _clickedLocation!.latitude,
+                      longitude: _clickedLocation!.longitude,
+                    ),
+                  ),
                 );
               },
               child: Icon(Icons.location_on),
@@ -152,6 +149,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
 
 class MapWidget extends StatelessWidget {
   final Function(LatLng) onMapClick;
@@ -352,10 +350,26 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
 
 
 class RegisterPage extends StatelessWidget {
+  final double latitude;
+  final double longitude;
+
+  const RegisterPage({
+    Key? key,
+    required this.latitude,
+    required this.longitude,
+  }) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Text('Register Page Content'),
+    return MaterialApp(
+      title: 'Weather Forecast',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: WeatherForecastScreen(
+        latitude: latitude,
+        longitude: longitude,
+      ),
     );
   }
 }
