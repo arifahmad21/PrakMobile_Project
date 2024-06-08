@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:projek_akhir/model/current.dart';
 import 'package:projek_akhir/services/load_data2.dart';
 import 'package:projek_akhir/view/forecast.dart';
 import 'package:projek_akhir/view/login.dart';
-import 'package:projek_akhir/view/register.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'dart:async';
 
 class HomePage extends StatefulWidget {
@@ -21,19 +21,39 @@ class _HomePageState extends State<HomePage> {
   final MapController _mapController = MapController();
   double _zoomLevel = 13.0;
   CurrentWeather? _currentWeather;
+  String _username = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsername();
+  }
+
+  Future<void> _loadUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _username = prefs.getString('username') ?? 'Guest';
+    });
+  }
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('username');
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginPage()),
+    );
+  }
 
   void _onItemTapped(int index) {
     if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => LoginPage()), // Navigate to LoginPage
-      );
+      _logout(); // Call logout method
     } else {
       setState(() {
         _selectedIndex = index;
-   });
+      });
+    }
   }
-}
 
   void _updateClickedLocation(LatLng location) {
     setState(() {
@@ -70,14 +90,107 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     List<Widget> _widgetOptions = <Widget>[
-      MapWidget(
-        onMapClick: _updateClickedLocation,
-        clickedLocation: _clickedLocation,
-        mapController: _mapController,
-        zoomLevel: _zoomLevel,
-        zoomIn: _zoomIn,
-        zoomOut: _zoomOut,
-        currentWeather: _currentWeather,
+      Center(
+        child: Column(
+          children: [
+            SizedBox(height: 20),
+            Text(
+              'Hello, $_username',
+              style: TextStyle(fontSize: 24, color: Colors.black),
+              textAlign: TextAlign.left,
+            ),
+            SizedBox(height: 20),
+            Container(
+              height: MediaQuery.of(context).size.height * 0.3,
+              margin: EdgeInsets.symmetric(horizontal: 15),
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.5),
+                    spreadRadius: 5,
+                    blurRadius: 7,
+                    offset: Offset(0, 3), // changes position of shadow
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      center: LatLng(-6.200000, 106.816666), // Jakarta, Indonesia
+                      zoom: _zoomLevel,
+                      onTap: (tapPosition, point) {
+                        _updateClickedLocation(point);
+                      },
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                        subdomains: ['a', 'b', 'c'],
+                      ),
+                      if (_clickedLocation != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              width: 80.0,
+                              height: 80.0,
+                              point: _clickedLocation!,
+                              builder: (ctx) => Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 40,
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                  Positioned(
+                    top: 5,
+                    right: 2,
+                    child: Column(
+                      children: [
+                        RawMaterialButton(
+                          onPressed: _zoomIn,
+                          elevation: 2.0,
+                          fillColor: Colors.white.withOpacity(0.7),
+                          child: Icon(
+                            Icons.zoom_in,
+                            size: 20.0,
+                            color: Colors.black,
+                          ),
+                          padding: EdgeInsets.all(5.0),
+                          shape: CircleBorder(),
+                        ),
+                        RawMaterialButton(
+                          onPressed: _zoomOut,
+                          elevation: 2.0,
+                          fillColor: Colors.white.withOpacity(0.7),
+                          child: Icon(
+                            Icons.zoom_out,
+                            size: 20.0,
+                            color: Colors.black,
+                          ),
+                          padding: EdgeInsets.all(5.0),
+                          shape: CircleBorder(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_currentWeather != null)
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: WeatherDisplay(currentWeather: _currentWeather!),
+              ),
+          ],
+        ),
       ),
       LoginPage(),
     ];
@@ -87,31 +200,7 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Weather App'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center, // Center all elements vertically
-          children: [
-            Container(
-              height: MediaQuery.of(context).size.height * 0.2,
-              child: _widgetOptions.elementAt(_selectedIndex),
-            ),
-            Expanded(
-              child: Center(
-                child: _selectedIndex == 0
-                    ? SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            if (_clickedLocation != null)
-                              // Text('Latitude: ${_clickedLocation!.latitude}, Longitude: ${_clickedLocation!.longitude}'),
-                            if (_currentWeather != null)
-                              WeatherDisplay(currentWeather: _currentWeather!),
-                          ],
-                        ),
-                      )
-                    : _widgetOptions.elementAt(_selectedIndex),
-              ),
-            ),
-          ],
-        ),
+        child: _widgetOptions.elementAt(_selectedIndex),
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
@@ -125,11 +214,12 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.amber[800],
+        selectedItemColor: Color.fromARGB(255, 8, 180, 202),
         onTap: _onItemTapped,
       ),
       floatingActionButton: _clickedLocation != null
           ? FloatingActionButton(
+              backgroundColor: Colors.white.withOpacity(0.7),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -141,88 +231,9 @@ class _HomePageState extends State<HomePage> {
                   ),
                 );
               },
-              child: Icon(Icons.location_on),
+              child: Icon(Icons.info, color:Color.fromARGB(255, 8, 180, 202)),
             )
           : null,
-    );
-  }
-}
-
-class MapWidget extends StatelessWidget {
-  final Function(LatLng) onMapClick;
-  final LatLng? clickedLocation;
-  final MapController mapController;
-  final double zoomLevel;
-  final VoidCallback zoomIn;
-  final VoidCallback zoomOut;
-  final CurrentWeather? currentWeather;
-
-  const MapWidget({
-    Key? key,
-    required this.onMapClick,
-    this.clickedLocation,
-    required this.mapController,
-    required this.zoomLevel,
-    required this.zoomIn,
-    required this.zoomOut,
-    this.currentWeather,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        FlutterMap(
-          mapController: mapController,
-          options: MapOptions(
-            center: LatLng(-6.200000, 106.816666), // Jakarta, Indonesia
-            zoom: zoomLevel,
-            onTap: (tapPosition, point) {
-              onMapClick(point);
-            },
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-              subdomains: ['a', 'b', 'c'],
-            ),
-            if (clickedLocation != null)
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    width: 80.0,
-                    height: 80.0,
-                    point: clickedLocation!,
-                    builder: (ctx) => Icon(
-                      Icons.location_on,
-                      color: Colors.red,
-                      size: 40,
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-        Positioned(
-          top: 10,
-          right: 10,
-          child: Column(
-            children: [
-              FloatingActionButton(
-                onPressed: zoomIn,
-                mini: true,
-                child: Icon(Icons.zoom_in),
-              ),
-              SizedBox(height: 8),
-              FloatingActionButton(
-                onPressed: zoomOut,
-                mini: true,
-                child: Icon(Icons.zoom_out),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
@@ -303,74 +314,63 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
   }
 
   @override
-Widget build(BuildContext context) {
-  return Padding(
-    padding: const EdgeInsets.all(16.0),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          '${widget.currentWeather.location?.name ?? 'Unknown'}, ${widget.currentWeather.location?.country ?? 'Unknown'}',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
-        SizedBox(height: 10),
-        Text(
-          'Date: $_date',
-          style: TextStyle(fontSize: 16),
-          textAlign: TextAlign.center,
-        ),
-        SizedBox(height: 10),
-        Text(
-          'Time: $_time',
-          style: TextStyle(fontSize: 16),
-          textAlign: TextAlign.center,
-        ),
-        SizedBox(height: 20),
-        Container(
-          margin: EdgeInsets.symmetric(horizontal:75),
-          decoration: BoxDecoration(
-            color: Colors.lightBlue.withOpacity(0.3), // Background color with transparency
-            borderRadius: BorderRadius.circular(10), // Border radius for rounded corners
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            '${widget.currentWeather.location?.name ?? 'Unknown'}, ${widget.currentWeather.location?.country ?? 'Unknown'}',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
+            textAlign: TextAlign.center,
           ),
-          padding: EdgeInsets.all(10),
-          // margin: EdgeInsets.symmetric(horizontal: 20), // Padding inside the container
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (widget.currentWeather.current?.condition?.icon != null)
-                    Image.network('https:${widget.currentWeather.current!.condition!.icon}'),
-                  SizedBox(width: 10),
-                  Text(
-                    '${widget.currentWeather.current?.tempC ?? 'N/A'}°C',
-                    style: TextStyle(fontSize: 32),
-                  ),
-                ],
-              ),
-              SizedBox(height: 10),
-              Text(
-                widget.currentWeather.current?.condition?.text ?? 'Unknown',
-                style: TextStyle(fontSize: 20),
-                textAlign: TextAlign.center,
-              ),
-            ],
+          SizedBox(height: 10),
+          Text(
+            'Date: $_date',
+            style: TextStyle(fontSize: 16, color: Colors.black),
+            textAlign: TextAlign.center,
           ),
-        ),
-      ],
-    ),
-  );
+          SizedBox(height: 10),
+          Text(
+            'Time: $_time',
+            style: TextStyle(fontSize: 16, color: Colors.black),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 20),
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: 75),
+            decoration: BoxDecoration(
+              color: Color.fromARGB(255, 96, 178, 216).withOpacity(0.7), // Background color with transparency
+              borderRadius: BorderRadius.circular(10), // Border radius for rounded corners
+            ),
+            padding: EdgeInsets.all(10),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (widget.currentWeather.current?.condition?.icon != null)
+                      Image.network('https:${widget.currentWeather.current!.condition!.icon}'),
+                    SizedBox(width: 10),
+                    Text(
+                      '${widget.currentWeather.current?.tempC ?? 'N/A'}°C',
+                      style: TextStyle(fontSize: 32, color: Colors.black),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 10),
+                Text(
+                  widget.currentWeather.current?.condition?.text ?? 'Unknown',
+                  style: TextStyle(fontSize: 20, color: Colors.black),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
-
-}
-
-// class LoginPage extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Center(
-//       child: Text('Login Page Content'),
-//  );
-// }
-// }

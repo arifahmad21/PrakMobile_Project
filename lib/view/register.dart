@@ -13,7 +13,6 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _isHovering = false;
 
   void _register() async {
     String username = _usernameController.text;
@@ -52,20 +51,19 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        body: Container(
-          margin: EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _header(),
-              _inputField(),
-            ],
-          ),
+    return Scaffold(
+      body: Container(
+        margin: EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _header(),
+            SizedBox(height: 20),
+            _inputField(),
+          ],
         ),
-        backgroundColor: Colors.blue[50],
       ),
+      backgroundColor: Colors.blue[50],
     );
   }
 
@@ -134,16 +132,6 @@ class _RegisterPageState extends State<RegisterPage> {
               style: TextStyle(fontSize: 16),
             ),
             MouseRegion(
-              onEnter: (_) {
-                setState(() {
-                  _isHovering = true;
-                });
-              },
-              onExit: (_) {
-                setState(() {
-                  _isHovering = false;
-                });
-              },
               child: GestureDetector(
                 onTap: () {
                   Navigator.pushReplacement(
@@ -155,7 +143,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   "Login",
                   style: TextStyle(
                     fontSize: 16,
-                    color: _isHovering ? Colors.blue : null,
+                    decoration: TextDecoration.underline,
                   ),
                 ),
               ),

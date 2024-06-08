@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:projek_akhir/view/home.dart';
 import 'package:projek_akhir/view/register.dart';
 import 'package:hive/hive.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../model/user.dart';
 
 class LoginPage extends StatefulWidget {
@@ -14,7 +15,11 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _isHovering = false;
+
+  Future<void> _saveUsername(String username) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('username', username);
+  }
 
   void _login() async {
     String username = _usernameController.text;
@@ -25,7 +30,9 @@ class _LoginPageState extends State<LoginPage> {
       (user) => user.username == username && user.password == password,
       orElse: () => User(username: '', password: ''),
     );
+
     if (user.username.isNotEmpty) {
+      await _saveUsername(user.username);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => HomePage()),
@@ -88,87 +95,77 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _inputField() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      TextField(
-        controller: _usernameController,
-        decoration: InputDecoration(
-          hintText: "Username",
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide.none,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _usernameController,
+          decoration: InputDecoration(
+            hintText: "Username",
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide.none,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            prefixIcon: Icon(Icons.person),
           ),
-          filled: true,
-          fillColor: Colors.white,
-          prefixIcon: Icon(Icons.person),
         ),
-      ),
-      SizedBox(height: 10),
-      TextField(
-        controller: _passwordController,
-        decoration: InputDecoration(
-          hintText: "Password",
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(18),
-            borderSide: BorderSide.none,
+        SizedBox(height: 10),
+        TextField(
+          controller: _passwordController,
+          decoration: InputDecoration(
+            hintText: "Password",
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(18),
+              borderSide: BorderSide.none,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            prefixIcon: Icon(Icons.lock),
           ),
-          filled: true,
-          fillColor: Colors.white,
-          prefixIcon: Icon(Icons.lock),
+          obscureText: true,
         ),
-        obscureText: true,
-      ),
-      SizedBox(height: 20),
-      ElevatedButton(
-        onPressed: _login,
-        child: Text(
-          "Login",
-          style: TextStyle(fontSize: 20),
-        ),
-        style: ElevatedButton.styleFrom(
-          shape: StadiumBorder(),
-          padding: EdgeInsets.symmetric(vertical: 16),
-        ),
-      ),
-      SizedBox(height: 10),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'Belum punya akun? ',
-            style: TextStyle(fontSize: 16),
+        SizedBox(height: 20),
+        ElevatedButton(
+          onPressed: _login,
+          child: Text(
+            "Login",
+            style: TextStyle(fontSize: 20),
           ),
-          MouseRegion(
-            onEnter: (_) {
-              setState(() {
-                _isHovering = true;
-              });
-            },
-            onExit: (_) {
-              setState(() {
-                _isHovering = false;
-              });
-            },
-            child: GestureDetector(
-              onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => RegisterPage()),
-                );
-              },
-              child: Text(
-                "Daftar Sekarang",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: _isHovering ? Colors.blue : null,
+          style: ElevatedButton.styleFrom(
+            shape: StadiumBorder(),
+            padding: EdgeInsets.symmetric(vertical: 16),
+          ),
+        ),
+        SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Belum punya akun? ',
+              style: TextStyle(fontSize: 16),
+            ),
+            MouseRegion(
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => RegisterPage()),
+                  );
+                },
+                child: Text(
+                  "Daftar Sekarang",
+                  style: TextStyle(
+                    fontSize: 16,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    ],
-  );
-}
+          ],
+        ),
+      ],
+    );
+  }
 }
